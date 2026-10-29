@@ -23,7 +23,30 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     if (!okIp || !okEmail) return { error: "Muitas tentativas. Aguarde alguns minutos." };
     adminId = await verifyCredentials(parsed.data.email, parsed.data.password);
   } catch (e) {
-    console.error("[login] erro", e instanceof Error ? e.name : "erro");
+    const sanitize = (value: string) => value
+      .replace(/\b[a-z][a-z\d+.-]*:\/\/[^\s"'<>]+/gi, "[connection URL redacted]")
+      .replace(/\b(password|passwd|pwd|token|secret|api[_-]?key|authorization|cookie|DATABASE_URL|DIRECT_URL|SESSION_SECRET)\b\s*[:=]\s*([^\s,;]+)/gi, "$1=[redacted]")
+      .replace(/\$2[aby]?\$\d{2}\$[^\s"']+/g, "[password hash redacted]")
+      .replace(/\$argon2[^\s"']+/g, "[password hash redacted]")
+      .replace(/\beyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\b/g, "[token redacted]");
+    const describeError = (value: unknown, depth = 0): Record<string, unknown> => {
+      if (depth > 3) return {};
+      if (typeof value !== "object" || value === null) {
+        return { message: typeof value === "string" ? sanitize(value) : "Cause não textual" };
+      }
+
+      const error = value as { name?: unknown; message?: unknown; code?: unknown; errorCode?: unknown; cause?: unknown };
+      const details: Record<string, unknown> = {
+        name: typeof error.name === "string" ? error.name.replace(/[^a-zA-Z0-9_.-]/g, "").slice(0, 80) : "Error",
+        message: typeof error.message === "string" ? sanitize(error.message) : "Mensagem indisponível",
+      };
+      const code = typeof error.code === "string" ? error.code : error.errorCode;
+      if (typeof code === "string" && /^P\d{4,}$/.test(code)) details.code = code;
+      if (error.cause !== undefined) details.cause = describeError(error.cause, depth + 1);
+      return details;
+    };
+
+    console.error("[login] erro", describeError(e));
     return { error: "Não foi possível entrar agora. Tente novamente." };
   }
   if (!adminId) return invalid;
