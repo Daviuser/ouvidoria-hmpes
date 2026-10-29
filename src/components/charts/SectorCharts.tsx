@@ -17,7 +17,7 @@ export function SectorCharts({ distribution, monthly, sectorName }: Props) {
           <BarChart data={distribution}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="score" /><YAxis allowDecimals={false} /><Tooltip />
-            <Bar dataKey="quantidade" name="Avaliações" fill="#3a8420" />
+            <Bar dataKey="quantidade" name="Avaliações" fill="#1d5bc4" />
           </BarChart>
         </ResponsiveContainer>
       </figure>
@@ -28,7 +28,7 @@ export function SectorCharts({ distribution, monthly, sectorName }: Props) {
             <LineChart data={monthly}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" /><YAxis domain={[1, 5]} /><Tooltip /><Legend />
-              <Line type="monotone" dataKey="media" name="Média" stroke="#1f2d3b" strokeWidth={2} />
+              <Line type="monotone" dataKey="media" name="Média" stroke="#0f766e" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         )}
