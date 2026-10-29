@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ManifestationType {
+  COMPLAINT
+  SUGGESTION
+  PRAISE
+}
+
+enum ManifestationStatus {
+  RECEIVED
+  IN_REVIEW
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// Setores com código estável (fonte: src/config/sectors.ts, sincronizada pelo seed).
+model Sector {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique
+  name          String
+  rateable      Boolean  @default(true)
+  displayOrder  Int
+  manifestations Manifestation[]
+  ratings       Rating[]
+}
+
+model Manifestation {
+  id            String              @id @default(cuid())
+  protocol      String              @unique
+  type          ManifestationType
+  status        ManifestationStatus @default(RECEIVED)
+  sectorId      Int
+  sector        Sector              @relation(fields: [sectorId], references: [id])
+  otherSector   String?
+  description   String
+  name          String?
+  email         String?
+  phone         String?
+  anonymous     Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  history       ManifestationHistory[]
+  notes         InternalNote[]
+
+  @@index([createdAt])
+  @@index([sectorId])
+  @@index([status])
+  @@index([type])
+}
+
+model Rating {
+  id           String   @id @default(cuid())
+  submissionId String
+  sectorId     Int
+  sector       Sector   @relation(fields: [sectorId], references: [id])
+  score        Int
+  comment      String?
+  createdAt    DateTime @default(now())
+
+  @@index([sectorId, createdAt])
+  @@index([submissionId])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  history      ManifestationHistory[]
+  notes        InternalNote[]
+}
+
+model ManifestationHistory {
+  id              String               @id @default(cuid())
+  manifestationId String
+  manifestation   Manifestation        @relation(fields: [manifestationId], references: [id])
+  adminId         String?
+  admin           AdminUser?           @relation(fields: [adminId], references: [id])
+  fromStatus      ManifestationStatus?
+  toStatus        ManifestationStatus
+  note            String?
+  createdAt       DateTime             @default(now())
+
+  @@index([manifestationId, createdAt])
+}
+
+model InternalNote {
+  id              String        @id @default(cuid())
+  manifestationId String
+  manifestation   Manifestation @relation(fields: [manifestationId], references: [id])
+  adminId         String
+  admin           AdminUser     @relation(fields: [adminId], references: [id])
+  content         String
+  createdAt       DateTime      @default(now())
+
+  @@index([manifestationId, createdAt])
+}
+
+/// Contadores de janela fixa para rate limiting (funciona em ambiente serverless).
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+}
+
+/// Trilha de auditoria de ações administrativas.
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String?
+  action    String
+  target    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
