@@ -30,9 +30,20 @@ describe("estatísticas de avaliações", () => {
 });
 
 describe("setores", () => {
-  it("contém os seis setores avaliáveis, incluindo Raio-X e SAME", () => {
-    expect(RATEABLE_SECTORS.map((s) => s.code)).toEqual(["RECEPCAO", "ENFERMAGEM", "CORPO_MEDICO", "SEGURANCA", "RAIO_X", "SAME"]);
+  it("contém os setores avaliáveis existentes e os oito novos", () => {
+    expect(RATEABLE_SECTORS.map((s) => s.code)).toEqual([
+      "RECEPCAO", "ENFERMAGEM", "CORPO_MEDICO", "SEGURANCA", "RAIO_X", "SAME",
+      "HIGIENIZACAO", "NUTRICAO", "MAQUEIRO", "LABORATORIO", "EMERGENCIA",
+      "CLINICA_MEDICA", "MATERNIDADE", "CENTRO_CIRURGICO",
+    ]);
     expect(SECTORS.at(-1)?.code).toBe("OUTROS");
+  });
+  it("mantém grafia correta e códigos únicos para os novos setores", () => {
+    expect(SECTORS.map((s) => s.name)).toEqual(expect.arrayContaining([
+      "Higienização", "Nutrição", "Maqueiro", "Laboratório", "Emergência",
+      "Clínica Médica", "Maternidade", "Centro Cirúrgico",
+    ]));
+    expect(new Set(SECTORS.map((s) => s.name)).size).toBe(SECTORS.length);
   });
   it("códigos são únicos", () => {
     expect(new Set(SECTORS.map((s) => s.code)).size).toBe(SECTORS.length);

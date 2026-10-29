@@ -6,6 +6,14 @@ export const SECTORS = [
   { code: "SEGURANCA", name: "Segurança", rateable: true },
   { code: "RAIO_X", name: "Raio-X (Radiologia)", rateable: true },
   { code: "SAME", name: "SAME (Serviço de Arquivo Médico e Estatística)", rateable: true },
+  { code: "HIGIENIZACAO", name: "Higienização", rateable: true },
+  { code: "NUTRICAO", name: "Nutrição", rateable: true },
+  { code: "MAQUEIRO", name: "Maqueiro", rateable: true },
+  { code: "LABORATORIO", name: "Laboratório", rateable: true },
+  { code: "EMERGENCIA", name: "Emergência", rateable: true },
+  { code: "CLINICA_MEDICA", name: "Clínica Médica", rateable: true },
+  { code: "MATERNIDADE", name: "Maternidade", rateable: true },
+  { code: "CENTRO_CIRURGICO", name: "Centro Cirúrgico", rateable: true },
   { code: "OUTROS", name: "Outros setores", rateable: false },
 ] as const;
 
