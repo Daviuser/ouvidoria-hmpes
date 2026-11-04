@@ -23,7 +23,7 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
   });
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ protocol: string; message: string } | null>(null);
+  const [done, setDone] = useState<{ protocol: string; message: string; whatsappUrl: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const anonymous = watch("anonymous");
   const sector = watch("sector");
@@ -32,9 +32,19 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
 
   const onSubmit = (values: Values) => {
     setFormError(null);
+    const confirmation = "Sua manifestação será registrada em nosso sistema e também poderá ser encaminhada diretamente à Diretoria do Hospital Municipal de Santaluz pelo WhatsApp.";
+    if (!window.confirm(confirmation)) return;
+    const whatsappWindow = window.open("about:blank", "_blank");
     startTransition(async () => {
       const result = await submitManifestation(values);
-      if (result.ok) { setDone({ protocol: result.protocol, message: result.message }); reset(); return; }
+      if (result.ok) {
+        const whatsappUrl = `https://wa.me/5575988442372?text=${encodeURIComponent(result.whatsappMessage)}`;
+        setDone({ protocol: result.protocol, message: result.message, whatsappUrl });
+        if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
+        reset();
+        return;
+      }
+      whatsappWindow?.close();
       setFormError(result.error);
       for (const [field, message] of Object.entries(result.fieldErrors ?? {})) setError(field as keyof Values, { message });
     });
@@ -61,6 +71,8 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
           </button>
         </div>
         <p className="mt-3 text-xs text-slate-500">Guarde este número para referência.</p>
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-slate-600">O WhatsApp abrirá com a mensagem preenchida. Para concluir o encaminhamento, toque em Enviar no próprio WhatsApp.</p>
+        <a className="btn mt-4" href={done.whatsappUrl} target="_blank" rel="noreferrer">Abrir WhatsApp da Diretoria</a>
         <button className="btn mt-5" onClick={() => setDone(null)}>Registrar outra manifestação</button>
       </div>
     );

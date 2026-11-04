@@ -22,7 +22,7 @@ function fieldErrors(error: z.ZodError): Record<string, string> {
   return out;
 }
 
-export async function submitManifestation(raw: unknown): Promise<PublicResult<{ protocol: string; message: string }>> {
+export async function submitManifestation(raw: unknown): Promise<PublicResult<{ protocol: string; message: string; whatsappMessage: string }>> {
   const parsed = manifestationSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Verifique os campos destacados.", fieldErrors: fieldErrors(parsed.error) };
   const input = parsed.data;
@@ -32,7 +32,8 @@ export async function submitManifestation(raw: unknown): Promise<PublicResult<{ 
     const key = await clientKey();
     if (!(await rateLimit(`manif:${key}`, 5, 600))) return { ok: false, error: TOO_MANY };
     const protocol = await createManifestation(input);
-    return { ok: true, protocol, message: CONFIRMATION_MESSAGE[input.type] };
+    const whatsappMessage = `Tipo da manifestação: ${input.type === "COMPLAINT" ? "Reclamação" : input.type === "SUGGESTION" ? "Sugestão" : "Elogio"}\nProtocolo: ${protocol}\n\nTexto integral da manifestação:\n${input.description}`;
+    return { ok: true, protocol, message: CONFIRMATION_MESSAGE[input.type], whatsappMessage };
   } catch (e) {
     console.error("[manifestacao] falha ao gravar", e instanceof Error ? e.name : "erro");
     return { ok: false, error: GENERIC_ERROR };
