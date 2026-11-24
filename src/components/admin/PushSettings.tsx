@@ -29,7 +29,11 @@ export function PushSettings() {
       if (!publicKey) throw new Error("O servidor ainda não foi configurado para Web Push.");
       const permission = await Notification.requestPermission();
       if (permission !== "granted") throw new Error("Permissão de notificações não autorizada.");
-      const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      // register() pode resolver enquanto o worker ainda está instalando; PushManager
+      // exige uma registration com service worker ativo.
+      const registration = await navigator.serviceWorker.ready;
+      if (!registration.active) throw new Error("O Service Worker ainda não está ativo. Recarregue a página e tente novamente.");
       const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(publicKey) });
       const result = await registerPushAction(subscription.toJSON());
       if (!result.ok) throw new Error(result.error);
