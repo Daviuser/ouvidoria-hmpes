@@ -8,6 +8,8 @@ import { clientKey } from "@/lib/security/client-ip";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { createManifestation } from "@/server/services/manifestation.service";
 import { createRatings } from "@/server/services/rating.service";
+import { sendManifestationPushOnce } from "@/server/services/push.service";
+import { prisma } from "@/lib/db/prisma";
 
 export type PublicResult<T extends object = object> =
   | ({ ok: true } & T)
@@ -32,6 +34,13 @@ export async function submitManifestation(raw: unknown): Promise<PublicResult<{ 
     const key = await clientKey();
     if (!(await rateLimit(`manif:${key}`, 5, 600))) return { ok: false, error: TOO_MANY };
     const protocol = await createManifestation(input);
+    try {
+      // A gravação foi confirmada; falhas de push nunca afetam o protocolo nem o WhatsApp.
+      const manifestation = await prisma.manifestation.findUnique({ where: { protocol }, select: { id: true } });
+      if (manifestation) await sendManifestationPushOnce(manifestation.id);
+    } catch (error) {
+      console.error("[push] manifestação salva, mas notificação não enviada", error instanceof Error ? error.message : "erro");
+    }
     const whatsappMessage = `Tipo da manifestação: ${input.type === "COMPLAINT" ? "Reclamação" : input.type === "SUGGESTION" ? "Sugestão" : "Elogio"}\nProtocolo: ${protocol}\n\nTexto integral da manifestação:\n${input.description}`;
     return { ok: true, protocol, message: CONFIRMATION_MESSAGE[input.type], whatsappMessage };
   } catch (e) {

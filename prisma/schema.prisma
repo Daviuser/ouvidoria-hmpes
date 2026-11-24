@@ -49,6 +49,7 @@ model Manifestation {
   updatedAt     DateTime            @updatedAt
   history       ManifestationHistory[]
   notes         InternalNote[]
+  pushDelivery  PushDelivery?
 
   @@index([createdAt])
   @@index([sectorId])
@@ -78,6 +79,7 @@ model AdminUser {
   createdAt    DateTime @default(now())
   history      ManifestationHistory[]
   notes        InternalNote[]
+  pushSubscriptions PushSubscription[]
 }
 
 model ManifestationHistory {
@@ -122,4 +124,24 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Assinatura cifrada do Web Push; endpointHash garante uma inscrição por endpoint.
+model PushSubscription {
+  id           String   @id @default(cuid())
+  adminId      String
+  admin        AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  endpointHash String   @unique
+  encrypted    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([adminId, createdAt])
+}
+
+/// Impede que a mesma manifestação gere mais de um disparo.
+model PushDelivery {
+  manifestationId String @id
+  manifestation Manifestation @relation(fields: [manifestationId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
 }

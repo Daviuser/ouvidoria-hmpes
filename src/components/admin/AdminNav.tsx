@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, ClipboardList, LayoutDashboard, Menu, X } from "lucide-react";
+import { Bell, BarChart3, ClipboardList, LayoutDashboard, Menu, X } from "lucide-react";
 
 const LINKS = [
+  { href: "/admin/notificacoes", label: "Notificações", Icon: Bell },
   { href: "/admin/dashboard", label: "Painel", Icon: LayoutDashboard },
   { href: "/admin/manifestacoes", label: "Manifestações", Icon: ClipboardList },
   { href: "/admin/avaliacoes", label: "Avaliações", Icon: BarChart3 },

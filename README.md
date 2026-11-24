@@ -52,6 +52,22 @@ npm run build
 3. Aplique migrations de forma controlada **fora do build**, do seu computador: `npx prisma migrate deploy` apontando para o banco de produção.
 4. Faça o deploy e crie o administrador com `npm run admin:create` (localmente, com `DATABASE_URL`/`DIRECT_URL` de produção).
 
+## Notificações push (Web Push)
+
+O painel administrativo inclui `/admin/notificacoes` para cadastrar mais de um aparelho, remover aparelhos e enviar um teste. O disparo de manifestação ocorre depois da gravação confirmada; a mensagem enviada é genérica e não inclui o relato. O WhatsApp continua no fluxo existente. Assinaturas ficam cifradas com AES-256-GCM no banco e endpoints inválidos (HTTP 404/410) são removidos.
+
+1. Execute `npm run push:configure` uma vez no ambiente local. O comando cria `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` e `PUSH_ENCRYPTION_KEY` no `.env`, sem sobrescrever chaves já existentes. Troque o e-mail padrão em `VAPID_SUBJECT` por um contato real. Guarde as chaves privadas como segredos.
+2. Em Vercel **Settings → Environment Variables**, cadastre essas mesmas quatro variáveis nos ambientes em que o app será executado. Use as chaves do ambiente que enviar push; não gere chaves VAPID ou `PUSH_ENCRYPTION_KEY` diferentes depois de cadastrar dispositivos. `VAPID_PUBLIC_KEY` é entregue ao navegador; `VAPID_PRIVATE_KEY` e `PUSH_ENCRYPTION_KEY` ficam exclusivamente no servidor.
+3. Aplique a migration em produção com `npx prisma migrate deploy` apontando para o banco correto. Ela acrescenta tabelas de assinaturas e de controle de disparo sem apagar dados. O fluxo requer HTTPS em produção (localhost é aceito para desenvolvimento).
+4. Entre como administrador no celular e abra **Notificações → Ativar notificações neste dispositivo**. Autorize a permissão e use **Testar notificação**. Repita em cada aparelho adicional.
+
+### Instalar na tela inicial
+
+- **Android:** abra o site em Chrome, use o menu do navegador e escolha **Instalar app** ou **Adicionar à tela inicial**. Abra o app instalado, entre no painel e ative as notificações.
+- **iPhone/iPad (iOS/iPadOS 16.4+):** abra o site no Safari, toque em **Compartilhar → Adicionar à Tela de Início**, abra pelo novo ícone e entre no painel. Toque em **Ativar notificações neste dispositivo** e aceite. A permissão deve ser pedida pelo app aberto na tela inicial.
+
+Web Push depende do suporte do navegador e das permissões do sistema. No iOS, o app deve permanecer instalado na tela inicial; remover a instalação ou revogar a permissão desativa a entrega.
+
 ## Backup e recuperação
 O Neon mantém histórico para restauração pontual (janela depende do plano) e permite *branches*. Recomenda-se: confirmar a janela do plano contratado, criar branch antes de cada migration em produção e exportar periodicamente com `pg_dump "$DIRECT_URL" > backup.sql` guardado em local seguro. Isso depende de configuração externa à aplicação.
 
