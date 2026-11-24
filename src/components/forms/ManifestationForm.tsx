@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { AlertCircle, Check, CheckCircle2, Copy, Loader2, Send, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, CheckCircle2, Copy, Loader2, Send, ShieldCheck } from "lucide-react";
 import { submitManifestation } from "@/app/actions/public";
 import { DESCRIPTION_MAX } from "@/config/app";
 import { SECTORS } from "@/config/sectors";
@@ -23,10 +23,11 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
   });
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ protocol: string; message: string; whatsappUrl: string } | null>(null);
+  const [done, setDone] = useState<{ protocol: string; type: string; whatsappUrl: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const anonymous = watch("anonymous");
   const sector = watch("sector");
+  const type = watch("type");
   const length = watch("description")?.length ?? 0;
   const nearLimit = length > DESCRIPTION_MAX * 0.9;
 
@@ -36,10 +37,17 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
     if (!window.confirm(confirmation)) return;
     const whatsappWindow = window.open("about:blank", "_blank");
     startTransition(async () => {
-      const result = await submitManifestation(values);
+      let result: Awaited<ReturnType<typeof submitManifestation>>;
+      try {
+        result = await submitManifestation(values);
+      } catch {
+        whatsappWindow?.close();
+        setFormError("Não foi possível confirmar o envio. Seus dados foram mantidos; tente novamente em instantes.");
+        return;
+      }
       if (result.ok) {
         const whatsappUrl = `https://wa.me/5575988442372?text=${encodeURIComponent(result.whatsappMessage)}`;
-        setDone({ protocol: result.protocol, message: result.message, whatsappUrl });
+        setDone({ protocol: result.protocol, type: values.type, whatsappUrl });
         if (whatsappWindow) whatsappWindow.location.href = whatsappUrl;
         reset();
         return;
@@ -56,12 +64,20 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
   };
 
   if (done) {
+    const confirmation = {
+      COMPLAINT: { title: "Reclamação registrada com sucesso!", paragraphs: ["Sua reclamação foi registrada com sucesso. A Diretoria do Hospital irá verificar cuidadosamente sua manifestação e analisar a situação relatada.", "Agradecemos por compartilhar sua opinião. Sua participação é importante para identificarmos oportunidades de melhoria e aprimorarmos continuamente nossos serviços."] },
+      PRAISE: { title: "Elogio registrado com sucesso!", paragraphs: ["Seu elogio foi registrado com sucesso!", "A Diretoria agradece imensamente pelo reconhecimento e pela gentileza em compartilhar sua experiência.", "Sua mensagem é muito importante para toda a nossa equipe e nos motiva a continuar trabalhando para oferecer um atendimento cada vez melhor.", "Muito obrigado pelo carinho!"] },
+      SUGGESTION: { title: "Sugestão registrada com sucesso!", paragraphs: ["Sua sugestão foi registrada com sucesso. A Diretoria irá analisar sua contribuição e avaliar as possibilidades de implementação.", "Agradecemos por dedicar seu tempo para compartilhar suas ideias. Sua participação é fundamental para a melhoria contínua dos nossos serviços.", "Muito obrigado pela sua opinião!"] },
+    }[done.type as "COMPLAINT" | "PRAISE" | "SUGGESTION"];
     return (
-      <div role="status" className="card animate-scale-in border-accent-100 text-center">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-50 text-accent-600 ring-8 ring-accent-50/60">
+      <div role="status" aria-live="polite" className="card animate-scale-in border-accent-100 bg-gradient-to-b from-white to-accent-50/30 px-5 py-8 text-center sm:px-8">
+        <span className="success-mark relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-50 text-accent-600 ring-8 ring-accent-50/60">
           <CheckCircle2 className="h-9 w-9" aria-hidden />
         </span>
-        <p className="mt-4 text-base font-semibold text-navy-900">{done.message}</p>
+        <p className="mt-6 text-xl font-bold tracking-tight text-navy-900 sm:text-2xl">{confirmation.title}</p>
+        <div className="mx-auto mt-4 max-w-xl space-y-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+          {confirmation.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        </div>
         <div className="mx-auto mt-5 max-w-sm rounded-xl border border-dashed border-brand-200 bg-brand-50/60 p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-brand-800">Seu protocolo</p>
           <p className="mt-1 select-all break-all text-2xl font-bold tracking-wider text-brand-900">{done.protocol}</p>
@@ -73,7 +89,7 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
         <p className="mt-3 text-xs text-slate-500">Guarde este número para referência.</p>
         <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-slate-600">O WhatsApp abrirá com a mensagem preenchida. Para concluir o encaminhamento, toque em Enviar no próprio WhatsApp.</p>
         <a className="btn mt-4" href={done.whatsappUrl} target="_blank" rel="noreferrer">Abrir WhatsApp da Diretoria</a>
-        <button className="btn mt-5" onClick={() => setDone(null)}>Registrar outra manifestação</button>
+        <button className="btn-secondary mt-5" onClick={() => { setDone(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}><ArrowLeft className="h-4 w-4" aria-hidden />Voltar à página inicial</button>
       </div>
     );
   }
@@ -88,7 +104,7 @@ export function ManifestationForm({ allowAnonymous }: { allowAnonymous: boolean 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="label" htmlFor="type">Tipo de manifestação *</label>
-          <select id="type" className="field" aria-invalid={!!errors.type} {...register("type", { required: "Selecione o tipo de manifestação." })}>
+          <select id="type" className={`field ${type ? "border-brand-300 bg-brand-50/40 font-medium" : ""}`} aria-invalid={!!errors.type} {...register("type", { required: "Selecione o tipo de manifestação." })}>
             <option value="">Selecione…</option>
             <option value="COMPLAINT">Reclamação</option>
             <option value="SUGGESTION">Sugestão</option>

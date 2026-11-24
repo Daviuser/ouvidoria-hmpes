@@ -2,15 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
+:root { color-scheme: light; --brand-deep: #12315f; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-body { @apply bg-surface font-sans text-navy-800 antialiased; }
+body { @apply bg-surface font-sans text-navy-800 antialiased; background-image: radial-gradient(ellipse at 50% -25%, rgb(220 233 255 / .42), transparent 58%); }
 :focus-visible { outline: 3px solid #2f6fdb; outline-offset: 2px; border-radius: 6px; }
 ::selection { background: #bcd4ff; }
 
 @layer components {
   .field {
-    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-navy-900 shadow-sm outline-none
+    @apply min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-base text-navy-900 shadow-sm outline-none
       transition duration-200 placeholder:text-slate-400 hover:border-slate-400
       focus:border-brand-500 focus:ring-4 focus:ring-brand-100;
   }
@@ -20,14 +20,14 @@ body { @apply bg-surface font-sans text-navy-800 antialiased; }
   .hint { @apply mt-1 text-xs text-slate-500; }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm
       transition duration-200 hover:bg-brand-800 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-navy-800
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-navy-800
       shadow-sm transition duration-200 hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] disabled:opacity-60;
   }
-  .card { @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6; }
+  .card { @apply rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft sm:p-6; }
   .card-hover { @apply transition duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lift; }
   .err { @apply mt-1.5 flex items-center gap-1 text-xs font-medium text-alert-600; }
 
@@ -47,6 +47,20 @@ body { @apply bg-surface font-sans text-navy-800 antialiased; }
   }
 }
 
+.public-hero { position: relative; background: linear-gradient(145deg,#f7faff 0%,#eaf2ff 48%,#f4faf9 100%); }
+.hero-orb { position:absolute; display:block; border-radius:9999px; filter:blur(1px); pointer-events:none; }
+.hero-orb-one { width:22rem;height:22rem;top:-15rem;left:calc(50% - 27rem);background:radial-gradient(circle,rgb(47 111 219 / .16),transparent 68%); }
+.hero-orb-two { width:28rem;height:28rem;right:calc(50% - 32rem);bottom:-23rem;background:radial-gradient(circle,rgb(20 184 166 / .12),transparent 68%); }
+.success-mark { animation: success-pop .65s cubic-bezier(.2,.8,.2,1) both; }
+.success-mark svg { stroke-dasharray:40;stroke-dashoffset:40;animation:check-draw .55s .25s ease-out forwards; }
+.success-mark::before,.success-mark::after { content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#14b8a6;opacity:0;animation:success-spark .7s .35s ease-out both; }
+.success-mark::before { top:0;right:3px;--spark-x:12px;--spark-y:-12px; }
+.success-mark::after { bottom:4px;left:0;--spark-x:-12px;--spark-y:8px; }
+@keyframes success-pop { 0% {opacity:0;transform:scale(.7) rotate(-10deg)} 65% {opacity:1;transform:scale(1.08) rotate(2deg)} 100% {transform:scale(1) rotate(0)} }
+@keyframes check-draw { to {stroke-dashoffset:0} }
+@keyframes success-spark { 20% {opacity:.85} 100% {opacity:0;transform:translate(var(--spark-x),var(--spark-y)) scale(.3)} }
+@media (max-width:420px) { .card { border-radius:1rem; } }
+
 /* Entrada escalonada: use style={{ animationDelay }} nos filhos */
 .stagger > * { animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .stagger > *:nth-child(2) { animation-delay: 60ms; }
@@ -62,4 +76,5 @@ body { @apply bg-surface font-sans text-navy-800 antialiased; }
     animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important; scroll-behavior: auto !important;
   }
+  .success-mark, .success-mark svg { animation:none !important; stroke-dashoffset:0; }
 }
