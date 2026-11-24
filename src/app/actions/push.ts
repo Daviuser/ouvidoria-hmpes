@@ -30,9 +30,16 @@ export async function removePushAction(id: string) {
 export async function testPushAction() {
   const admin = await requireAdmin();
   try {
-    const count = await sendTestPush(admin.id);
-    return count ? { ok: true, message: "Notificação de teste enviada." } : { ok: false, message: "Cadastre um dispositivo primeiro." };
-  } catch {
-    return { ok: false, message: "Falha ao enviar. Confira VAPID e a conexão deste dispositivo." };
+    const result = await sendTestPush(admin.id);
+    if (!result.registered) return { ok: false, message: "Cadastre um dispositivo primeiro." };
+    if (result.delivered) return { ok: true, message: result.failures.length ? `Teste entregue a ${result.delivered} dispositivo(s); houve falha em outros.` : `Notificação de teste enviada a ${result.delivered} dispositivo(s).` };
+    if (result.expired) return { ok: false, message: "A inscrição deste dispositivo expirou e foi removida. Ative as notificações novamente no celular." };
+    if (result.failures.includes("encryption_key")) return { ok: false, message: "A PUSH_ENCRYPTION_KEY da Vercel não corresponde à usada ao cadastrar este dispositivo. Corrija a variável e cadastre o aparelho novamente." };
+    if (result.failures.some((failure) => failure === "http_401" || failure === "http_403")) return { ok: false, message: "O provedor rejeitou a autenticação VAPID. Confira se a chave pública e a privada na Vercel pertencem ao mesmo par usado ao ativar o aparelho." };
+    if (result.failures.some((failure) => failure === "http_429" || failure.startsWith("http_5"))) return { ok: false, message: "O serviço push está temporariamente indisponível. Tente novamente em alguns minutos." };
+    return { ok: false, message: "O serviço push recusou o envio. Confira as configurações VAPID da Vercel e tente cadastrar o celular novamente." };
+  } catch (error) {
+    console.error("[push:test] configuração indisponível", error instanceof Error ? error.message : "erro desconhecido");
+    return { ok: false, message: "Configuração push incompleta no servidor. Confira VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT e PUSH_ENCRYPTION_KEY na Vercel." };
   }
 }

@@ -86,15 +86,29 @@ export async function sendManifestationPushOnce(manifestationId: string) {
 export async function sendTestPush(adminId: string) {
   configure();
   const rows = await prisma.pushSubscription.findMany({ where: { adminId } });
+  let delivered = 0;
+  let expired = 0;
+  const failures: string[] = [];
   await Promise.all(rows.map(async (row) => {
     try {
-      await sendNotification(JSON.parse(decrypt(row.encrypted)) as SubscriptionData,
+      let subscription: SubscriptionData;
+      try { subscription = JSON.parse(decrypt(row.encrypted)) as SubscriptionData; }
+      catch { throw new Error("PUSH_ENCRYPTION_KEY_MISMATCH"); }
+      await sendNotification(subscription,
         JSON.stringify({ title: "Ouvidoria — Hospital Municipal de Santaluz", body: "Notificação de teste recebida com sucesso.", url: "/admin/dashboard" }), { TTL: 60 * 60 });
+      delivered++;
     } catch (error) {
       const status = typeof error === "object" && error !== null && "statusCode" in error ? Number((error as { statusCode: unknown }).statusCode) : 0;
-      if (status === 404 || status === 410) await prisma.pushSubscription.delete({ where: { id: row.id } }).catch(() => undefined);
-      else throw error;
+      if (status === 404 || status === 410) {
+        await prisma.pushSubscription.delete({ where: { id: row.id } }).catch(() => undefined);
+        expired++;
+      } else if (error instanceof Error && error.message === "PUSH_ENCRYPTION_KEY_MISMATCH") {
+        failures.push("encryption_key");
+      } else {
+        failures.push(status ? `http_${status}` : "unknown");
+        console.error("[push:test] falha", { statusCode: status || undefined, errorName: error instanceof Error ? error.name : "UnknownError" });
+      }
     }
   }));
-  return rows.length;
+  return { registered: rows.length, delivered, expired, failures };
 }
